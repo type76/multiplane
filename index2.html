@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		
+		<title>multiplane z</title>
+
+		<style>
+			body { margin: 0; overflow: hidden; background: #222;}
+
+			canvas { width: 100%; height: 100%; position:absolute;}
+
+		</style>
+
+</head>
+	<body>
+		<canvas width="512" height="512" style="width: 512px; height: 512px;"></canvas>
+
+		<script src="js/three.min.js"></script>
+		<script src="js/orbitcontrols.min.js"></script>
+		<script src="js/quaternion.min.js"></script>
+		<script>
+		var increment = 1;
+			var scene = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera(
+				36.5,
+				window.innerWidth / window.innerHeight,
+				0.1,
+				2000
+			);
+
+			camera.position.z = 40;
+
+			var q = {
+				x: null,
+				y: null,
+				z: null,
+				w: null
+			};
+			var initial_angles = {
+				alpha: null,
+				beta: null,
+				gamma: null
+			};
+			
+
+			var renderer = new THREE.WebGLRenderer({ alpha: true });
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+
+			var controls = new THREE.OrbitControls( camera, renderer.domElement );
+			controls.enablePan = false;
+			controls.enableDamping = true;
+			controls.dampingFactor = 0.05;
+			controls.rotateSpeed = 0.02;
+			controls.maxDistance = 1000;
+			controls.minDistance = 2;
+
+			// controls.minPolarAngle = (Math.PI / 2) - 1;
+			// controls.maxPolarAngle = (Math.PI / 2) + 1;
+			// controls.minAzimuthAngle = -Math.PI / 2.8;
+			// controls.maxAzimuthAngle = Math.PI / 2.8;
+
+			var counter = 1;
+			var current_frame = 1;
+
+			
+			// Clipping
+			var clip_shape = new THREE.Shape();
+			clip_shape.moveTo( -40, -40 );
+			clip_shape.lineTo( 40, -40 );
+			clip_shape.lineTo( 40, 40 );
+			clip_shape.lineTo( -40, 40 );
+			clip_shape.lineTo(-40, -40 );
+			var clip_hole = new THREE.Shape();
+			clip_hole.moveTo( -10, -10 );
+			clip_hole.lineTo( 10, -10 );
+			clip_hole.lineTo( 10, 10 );
+			clip_hole.lineTo( -10, 10);
+			clip_hole.lineTo( -10, -10 );
+			clip_shape.holes.push(clip_hole);
+			var clip_plane = new THREE.ShapeBufferGeometry( clip_shape );
+			var clip_texture = new THREE.TextureLoader().load( "img/mask.png" );
+			var clip_material = new THREE.MeshBasicMaterial({
+				alphaMap: clip_texture,
+				colorWrite: false,
+				transparent: true
+			});
+			var clip_layer = new THREE.Mesh( clip_plane, clip_material );
+			clip_layer.renderOrder = 1;
+			clip_layer.position.z = 5;
+			scene.add( clip_layer );
+
+			// var bigclip = clip_layer.clone();
+			// bigclip.scale.set (2, 2, 2);
+			// scene.add(bigclip);
+
+			var animated_layers = [];
+
+			var group = new THREE.Group();
+			scene.add( group );
+			group.name = 'layers';
+
+			var pivot = new THREE.Group();
+			scene.add( pivot );
+
+			addLayer("img/clouds.png", -6, 2.7, 1, THREE.NormalBlending, false);
+			addLayer("img/hills.png", -4, 2.5, 1, THREE.NormalBlending, false);
+			addLayer("img/trees.png", -2, 2.4, 1, THREE.NormalBlending, false);
+			
+
+			controls.update();
+			
+			function animate() {
+layers.children[0].material.map.offset.x += .001;
+layers.children[1].material.map.offset.x += .005;
+layers.children[2].material.map.offset.x += .01;
+
+
+// texture.offset.x += .005;
+
+				requestAnimationFrame( animate );
+				controls.update();
+				bgupdate();
+				renderer.render( scene, camera );
+
+			}
+
+
+
+			function bgupdate() {
+				var new_frame = Math.ceil(counter / 15);
+				if (new_frame !== current_frame) {
+					var offset = (new_frame - 1) / 5;
+
+					animated_layers.forEach(function(layer, index) {
+						layer.material.map.offset.x = offset;
+					});
+					
+					current_frame += 1;
+					if (current_frame > 5) {
+						current_frame = 1;
+					}
+
+				}
+				
+				counter += 1;
+				
+				if (counter > 75) {
+					counter = 1;
+				} 
+
+			}//bgupdate
+
+
+			function addLayer(layer_name, position, scale, opacity, blendMode, animation) {
+				var geometry = new THREE.PlaneGeometry (10, 10);
+				texture = new THREE.TextureLoader().load( layer_name, function() {});
+
+
+		    	texture.magFilter = THREE.NearestFilter;
+		    	texture.minFilter = THREE.LinearMipMapLinearFilter;
+		    	 texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+				var material = new THREE.MeshBasicMaterial({
+					map: texture,
+					transparent: true,
+					opacity: opacity,
+					clippingPlanes: [clip_layer],
+					blending: blendMode
+				})
+				material.map.minFilter = THREE.LinearFilter;
+				var layer = new THREE.Mesh( geometry, material );
+				if (animation === true) {
+					layer.material.map.wrapS = THREE.RepeatWrapping;
+					layer.material.map.repeat.set(0.2, 1);
+				}
+				layer.position.z = position;
+				layer.scale.x = scale;
+				layer.scale.y = scale;
+				layer.renderOrder = 2;
+				if (animation) {
+					animated_layers.push(layer);
+				}
+				layer.name = layer_name;
+				group.add( layer );
+			}
+
+			
+
+
+
+			window.addEventListener('resize', function() {
+				resizeCanvas();			
+			});
+
+			function resizeCanvas() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+
+
+// start
+
+	    layers = scene.getObjectByProperty( 'name', 'layers', true );
+
+			animate();
+
+			// console.log()
+
+		</script>
+
+	
+</body></html>
