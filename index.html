@@ -165,7 +165,7 @@ maingroup.add(buttonR);
 
 
 // ship
-var shiptex = new THREE.TextureLoader().load( 'assets/alien.png' );
+var shiptex = new THREE.TextureLoader().load( 'assets/rocket.png' );
 shiptex.magFilter = THREE.NearestFilter;
 shiptex.minFilter = THREE.LinearMipMapLinearFilter;
 var shpgeometry = new THREE.PlaneBufferGeometry( 2, 2, 1 );
@@ -177,8 +177,8 @@ var shpmaterial = new THREE.MeshBasicMaterial( {
 	// opacity:1
 } );
 var ship = new THREE.Mesh( shpgeometry, shpmaterial );
-ship.position.z = 1.99;
-ship.position.y = -4.6;
+ship.position.z = 2.01;
+ship.position.y = -2;
 ship.renderOrder = 2;
 
 mothership.add( ship );
@@ -193,12 +193,12 @@ var shdwmaterial = new THREE.MeshBasicMaterial( {
 	opacity:0.2
 } );
 var shdw = new THREE.Mesh( shdwgeometry, shdwmaterial );
-shdw.position.z = 0.7;
-shdw.scale.y = 2;
-shdw.position.y = -0.4;
+shdw.position.z = 0.2;
+// shdw.scale.y = 2;
+shdw.position.y = -2.9;
 shdw.renderOrder = 2;
 shdw.rotation.x = -Math.PI/2;
-shdw.rotation.z = Math.PI;
+// shdw.rotation.z = Math.PI;
 ship.add( shdw );
 
 
@@ -229,16 +229,16 @@ var material = new THREE.LineBasicMaterial( {
 	color: 0x333333
 	, clippingPlanes: [clip_layer]
 	,transparent: true } );
-var xline1 = new THREE.Line( geometry, material );
-maingroup.add( xline1 );
+var line1 = new THREE.Line( geometry, material );
+maingroup.add( line1 );
 
-// var line2 = xline1.clone();
-// line2.position.set (0,0,-4);
-// maingroup.add(line2);
+var line2 = new THREE.Line( geometry, material );
+line2.position.set (0,0,-4);
+maingroup.add(line2);
 
-// var line3 = xline1.clone();
-// line3.position.set (0,0,-8);
-// maingroup.add(line3);
+var line3 = new THREE.Line( geometry, material );
+line3.position.set (0,0,-8);
+maingroup.add(line3);
 
 
 // make multiplane layers
@@ -376,9 +376,9 @@ function slowtimer() {
 
 // move background
 function bgmove() {
-	animated_layers[0].material.map.offset.x += xval/800;
-	animated_layers[1].material.map.offset.x += xval/600;
-	animated_layers[2].material.map.offset.x += xval/400;
+	// animated_layers[0].material.map.offset.x += xval/800;
+	// animated_layers[1].material.map.offset.x += xval/600;
+	// animated_layers[2].material.map.offset.x += xval/400;
 
 // show speed on screen
 document.getElementById('speedo').innerHTML = Math.round(xval*10);
@@ -392,14 +392,6 @@ mothership.position.z += (hero.position.z - cursor.position.z)*0.1;
 // cursor
 cursor.position.x = mothership.position.x;
 cursor.position.z = mothership.position.z;
-// document.getElementById('speedo').innerHTML = 'x:'+Math.round(camera.rotation.x) +' y:'+Math.round(camera.rotation.y)+' z:'+Math.round(camera.rotation.z);
-// MESSY!!! hide LDC world from camera position
-// if ( camera.position.y<-29 || camera.position.y>27 || camera.position.x>29) {
-// world.visible = false;
-// } else {
-// 	world.visible = true;
-// }
-
 }// end hero move
 
 </script>
