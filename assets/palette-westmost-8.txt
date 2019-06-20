@@ -1,0 +1,13 @@
+;paint.net Palette File
+;Downloaded from Lospec.com/palette-list
+;Palette Name: Westmost 8
+;Description: Created by <a target="_blank" href="https://twitter.com/RetrosaurDev">Retrosaur</a>.
+;Colors: 8
+FF131315
+FF4a5381
+FFb96f5a
+FFdadada
+FF343651
+FF644338
+FF4c9453
+FFcab17a
