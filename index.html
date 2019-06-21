@@ -4,12 +4,21 @@
 <title>multiplane z</title>
 
 <style>
+  @font-face {
+    font-family: 'DSEG7ClassicMini-Bold';
+    src: url('assets/font/DSEG7ClassicMini-Bold.woff2') format('woff2'), url('assets/font/DSEG7ClassicMini-Bold.woff') format('woff'),
+    url('assets/font/DSEG7ClassicMini-Bold.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
+
+
 body { margin: 0; overflow: hidden; background: #222;
 font-family: monospace;}
 
 canvas { width: 100%; height: 100%; position:absolute;}
 #speedo {position: absolute; top: 0px; left: 10px; z-index: 2;
-color: #fff;}
+color: #fff; font-family: 'DSEG7ClassicMini-Bold';}
 </style>
 
 </head>
@@ -64,8 +73,8 @@ controls.enablePan = false;
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.rotateSpeed = 0.02;
-controls.maxDistance = 40;
-controls.minDistance = 20;
+controls.maxDistance = 50;
+controls.minDistance = 15;
 
 // whole scene
 maingroup = new THREE.Group();
@@ -149,7 +158,6 @@ ground.rotation.set (-Math.PI/2,0,0);
 ground.position.set (0,-5.1,-15);
 scene.add( ground );
 
-
 //// LCD outline
 var size = lcdheight*2;
 var divisions = 1;
@@ -158,41 +166,6 @@ gridHelper.rotation.x = Math.PI/2;
 gridHelper.position.z = 5.2;
 gridHelper.scale.x = 1.5;
 maingroup.add(gridHelper)
-
-// button outlines
-var curve = new THREE.EllipseCurve(
-  0,  0,            // ax, aY
-  1, 1,           	// xRadius, yRadius
-  0,  2 * Math.PI,  // aStartAngle, aEndAngle
-  false,            // aClockwise
-  0                 // aRotation
-);
-
-var points = curve.getPoints( 30 );
-var dgeometry = new THREE.BufferGeometry().setFromPoints( points );
-var dmaterial = new THREE.LineBasicMaterial( { color : 0x333333
- } );
-// left button
-var buttonL = new THREE.Line( dgeometry, dmaterial );
-buttonL.position.set(-12, -4, 5.2);
-maingroup.add(buttonL);
-// right button
-var buttonR = buttonL.clone();
-buttonR.position.set (12,-4, 5.2);
-maingroup.add(buttonR);
-
-// hero / mothership object
-// let bgeometry = new THREE.BoxGeometry( 1, 1, 1 );
-// let mmaterial = new THREE.MeshBasicMaterial( { 
-// 	color: 0xff0000,
-// 	clippingPlanes: [clip_layer],
-// 	transparent: true
-//  } );
-// let cubicbody = new THREE.Mesh( bgeometry, mmaterial );
-// cubicbody.position.set(0,0,2);
-// cubicbody.renderOrder = 2;
-// mothership.add( cubicbody );
-
 
 // ship
 var shiptex = new THREE.TextureLoader().load( 'assets/rocket.png' );
@@ -369,19 +342,6 @@ function resizeCanvas() {
 }
 
 
-
-function animate() {
-	requestAnimationFrame( animate );
-	controls.update();
-	renderer.render( scene, camera );
-	bgmove();
-	heromove();
-}
-
-
-animate();
-
-
 //keys
 //esc
 document.onkeydown = function(evt) {
@@ -450,6 +410,7 @@ function slowtimer() {
 // move background
 function bgmove() {
 if (xval<1) {return}
+// range asteroid_layers
 for ( var i = 0; i < asteroid_layers.length; i ++ ) { 
 	asteroid_layers[i].position.x -= xval/100;
   if (asteroid_layers[i].position.x < -11) {
@@ -465,7 +426,7 @@ for ( var i = 0; i < asteroid_layers.length; i ++ ) {
 	bg_layers[0].position.x -= Math.random()/16;
 	bg_layers[1].position.x -= Math.random()/12;
 	bg_layers[2].position.x -= Math.random()/8;
-
+// range bg_layers
 for ( var i = 0; i < bg_layers.length; i ++ ) { 
   if (bg_layers[i].position.x < -20) {
     bg_layers[i].position.x = 20;
@@ -476,14 +437,28 @@ document.getElementById('speedo').innerHTML = Math.round(xval*10);
 
 }
 
-// move mothership
+// move mothership 
 function heromove() {
-// position
+// lane changing speed lerp
 mothership.position.z += (hero.position.z - cursor.position.z)*0.1;
-// cursor
+// position lerp
 cursor.position.x = mothership.position.x;
 cursor.position.z = mothership.position.z;
 }// end hero move
+
+
+
+// GAME LOOP
+function animate() {
+	requestAnimationFrame( animate );
+	controls.update();
+	renderer.render( scene, camera );
+	bgmove();
+	heromove();
+}
+
+// start <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< START HERE
+animate();
 
 </script>
 </body>
