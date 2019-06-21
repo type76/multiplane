@@ -163,8 +163,8 @@ maingroup.add( clip_layer );
 
 
 // floor texture
-var geometry =  new THREE.PlaneBufferGeometry( 80, 40, 1 );
-var material = new THREE.MeshLambertMaterial( {color: 0x333333, clippingPlanes: [clip_layer], transparent: true, opacity:0.6 } );
+var geometry =  new THREE.PlaneBufferGeometry( 40, 40, 100, 100 );
+var material = new THREE.MeshLambertMaterial( {color: 0x333333, clippingPlanes: [clip_layer], transparent: true, opacity:1 } );
 var ground = new THREE.Mesh( geometry, material );
 ground.receiveShadow = true;
 ground.rotation.set (-Math.PI/2,0,0);
@@ -177,7 +177,7 @@ var divisions = 1;
 var gridHelper = new THREE.GridHelper(size, divisions, 1, 0x333333 );
 gridHelper.rotation.x = Math.PI/2;
 gridHelper.position.z = 5.2;
-gridHelper.scale.x = 1.5;
+gridHelper.scale.x = 1.4;
 maingroup.add(gridHelper)
 
 // ship
@@ -206,7 +206,7 @@ var shdwmaterial = new THREE.MeshBasicMaterial( {
 	map:shiptex,
 	clippingPlanes: [clip_layer]
 	,transparent: true,
-	opacity:0.08
+	opacity:0.3
 } );
 var shdw = new THREE.Mesh( shdwgeometry, shdwmaterial );
 shdw.position.z = 0.2;
@@ -230,8 +230,8 @@ var lifematerial = new THREE.MeshBasicMaterial( {
 	transparent: true
 } );
 var heart = new THREE.Mesh( geometry, lifematerial );
-heart.position.x = -6.7;
-heart.position.z = 5.1;
+heart.position.x = -6.5;
+heart.position.z = 5.2;
 heart.position.y = -4.5;
 heart.renderOrder = 2;
 maingroup.add( heart );
@@ -260,7 +260,7 @@ var geometry = new THREE.Geometry();
 geometry.vertices.push(new THREE.Vector3( -30, -5, 2) );
 geometry.vertices.push(new THREE.Vector3( 30, -5, 2) );
 var material = new THREE.LineBasicMaterial( { 
-	color: 0x333333
+	color: 0x222222
 	, clippingPlanes: [clip_layer]
 	,transparent: true } );
 var line1 = new THREE.Line( geometry, material );
@@ -449,18 +449,18 @@ for ( var i = 0; i < asteroid_layers.length; i ++ ) {
 	}
 }
 // move asteroids !! make this more random *********
-asteroid_layers[0].rotation.z += Math.random()/10;
-asteroid_layers[1].rotation.z -= Math.random()/20;
-asteroid_layers[2].rotation.z += Math.random()/30;
+asteroid_layers[0].rotation.z += xval/650;
+asteroid_layers[1].rotation.z -= xval/500;
+asteroid_layers[2].rotation.z += xval/600;
 
 // move background layers
-bg_layers[0].position.x -= Math.random()/16;
-bg_layers[1].position.x -= Math.random()/12;
-bg_layers[2].position.x -= Math.random()/8;
+bg_layers[0].position.x -= xval/240;
+bg_layers[1].position.x -= xval/160;
+bg_layers[2].position.x -= xval/80;
 // range bg_layers
 for ( var i = 0; i < bg_layers.length; i ++ ) { 
-	if (bg_layers[i].position.x < -20) {
-		bg_layers[i].position.x = 20;
+	if (bg_layers[i].position.x < -21) {
+		bg_layers[i].position.x = (Math.random()*10)+24;
 	}
 }
 
@@ -540,8 +540,8 @@ function animate() {
 	renderer.render( scene, camera );
 	bgmove();
 	heromove();
-// // show speed on screen
-document.getElementById('points').innerHTML = Math.round(xval*5);
+// show speed on screen
+// document.getElementById('points').innerHTML = Math.round(xval*5);
 // DOM points position
 if (textlabels.length>0) {
 	for(var i=0; i<this.textlabels.length; i++) {
@@ -551,7 +551,7 @@ if (textlabels.length>0) {
 }
 
 // start <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< START HERE
-createclone('markernum',points.position.x,points.position.y,points.position.z);
+createclone('0',points.position.x,points.position.y,points.position.z);
 animate();
 
 </script>
