@@ -54,6 +54,8 @@ camera.position.set(0,0,30);
 // renderer
 var renderer = new THREE.WebGLRenderer({ alpha: true });
 renderer.setSize( window.innerWidth, window.innerHeight );
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 document.body.appendChild( renderer.domElement );
 
 // controls
@@ -72,7 +74,6 @@ scene.add( maingroup );
 // hero group
 hero = new THREE.Group();
 maingroup.add( hero );
-hero.position.set(3,0,0);
 
 // moving invisible group
 cursor = new THREE.Group();
@@ -86,16 +87,33 @@ maingroup.add(mothership);
 world = new THREE.Group();
 maingroup.add(world);
 
+mothership.position.set(-4,0,0);
+
+
 // planes
-var animated_layers = [];
+var asteroid_layers = [];
 
 // lights                
-var light = new THREE.AmbientLight( 0xffffff , 0.5); // soft white light
+var light = new THREE.AmbientLight( 0xffffff , 0.5);
 maingroup.add( light );
 
-var pointLight = new THREE.PointLight( 0xffffff, 100 );
-pointLight.position.set( 20, 30, 30 );
-maingroup.add( pointLight );
+var light = new THREE.PointLight( 0xffffff, 1, 40 );
+light.position.set( 10, 10, 10 );
+scene.add( light );
+
+//spot light
+var splight = new THREE.SpotLight( 0xffffff, 0.1 );
+splight.position.set( 0, 30, 0 );
+splight.castShadow = true;
+splight.shadow = new THREE.LightShadow( new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 1, 100 ) );
+splight.shadow.mapSize.width = 512;
+splight.shadow.mapSize.height = 512;
+light.shadow.camera.near = 0.5;
+light.shadow.camera.far = 50;
+
+splight.name = 'splight';
+scene.add( splight );
+
 
 // Clipping plane (mask)
 var clip_shape = new THREE.Shape();
@@ -119,6 +137,18 @@ var clip_layer = new THREE.Mesh( clip_plane, clip_material );
 clip_layer.renderOrder = 1;
 clip_layer.position.z = 5.2;
 maingroup.add( clip_layer );
+
+
+
+// floor texture
+var geometry =  new THREE.PlaneBufferGeometry( 80, 20, 1 );
+var material = new THREE.MeshLambertMaterial( {color: 0x333333, clippingPlanes: [clip_layer], transparent: true } );
+var ground = new THREE.Mesh( geometry, material );
+ground.receiveShadow = true;
+ground.rotation.set (-Math.PI/2,0,0);
+ground.position.set (0,-5.1,-5);
+scene.add( ground );
+
 
 //// LCD outline
 var size = lcdheight*2;
@@ -173,7 +203,7 @@ var shpmaterial = new THREE.MeshBasicMaterial( {
 	color: 0xffffff, 
 	map:shiptex,
 	clippingPlanes: [clip_layer]
-	,transparent: true,
+	,transparent: true
 	// opacity:1
 } );
 var ship = new THREE.Mesh( shpgeometry, shpmaterial );
@@ -242,13 +272,9 @@ maingroup.add(line3);
 
 
 // make multiplane layers
-addLayer("assets/bg3.png", -6, 0.5, 0.3, true);
-addLayer("assets/bg2.png", -2, 0.5, 0.6, true);
-addLayer("assets/bg1.png", 2, 0.5, 0.9, true);
-
-
-
-
+addLayer("assets/asteroid.png", -6, 0.1, 1, true);
+addLayer("assets/asteroid.png", -2, 0.1, 1, true);
+addLayer("assets/asteroid.png", 2, 0.1, 1, true);
 
 
 // add multiplane layers			
@@ -269,11 +295,28 @@ function addLayer(layer_name, position, scale, opacity, animation) {
 	var layer = new THREE.Mesh( geometry, material );
 	layer.material.map.wrapS = THREE.RepeatWrapping;
 	layer.position.z = position;
+	layer.position.y = -2;
+	layer.position.x = (Math.random()*10)+10;
+
 	layer.scale.x = scale;
 	layer.scale.y = scale;
+	layer.scale.z = scale;
 	layer.renderOrder = 2;
-	animated_layers.push(layer);
+	asteroid_layers.push(layer);
 	world.add( layer );
+	//
+
+var geometry = new THREE.SphereBufferGeometry( 9, 8, 8 );
+var material = new THREE.MeshBasicMaterial( {
+	color: 0xffff00, transparent:true,
+		clippingPlanes: [clip_layer]
+	} );
+var sphere = new THREE.Mesh( geometry, material );
+sphere.castShadow = true;
+layer.add( sphere );
+sphere.visibile = false;
+sphere.material.colorWrite = false;
+sphere.material.depthWrite = false;
 }
 
 
@@ -376,11 +419,23 @@ function slowtimer() {
 
 // move background
 function bgmove() {
-	// animated_layers[0].material.map.offset.x += xval/800;
-	// animated_layers[1].material.map.offset.x += xval/600;
-	// animated_layers[2].material.map.offset.x += xval/400;
+if (xval<1) {return}
+for ( var i = 0; i < asteroid_layers.length; i ++ ) { 
+	asteroid_layers[i].position.x -= xval/100;
+  if (asteroid_layers[i].position.x < -11) {
+    // var rnd = Math.random()/10;
+    asteroid_layers[i].position.x = (Math.random()*10)+10;
+    // asteroid_layers[i].scale.set(rnd, rnd, rnd);
+    // console.log(asteroid_layers[i])
+	
+  }
+}
+	// make this more random
+	asteroid_layers[0].rotation.z += Math.random()/20;
+	asteroid_layers[1].rotation.z -= Math.random()/20;
+	asteroid_layers[2].rotation.z += Math.random()/35;
 
-// show speed on screen
+// // show speed on screen
 document.getElementById('speedo').innerHTML = Math.round(xval*10);
 
 }
