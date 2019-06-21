@@ -35,7 +35,7 @@ var gamewidth = 600;
 var gameheight = 300;
 
 var xval = 0; // speed
-var topspeed = 10; //change for acceleration
+var topspeed = 20; //change for acceleration
 var slowdown = false;
 var started = false;
 
@@ -82,16 +82,16 @@ maingroup.add(cursor);
 // the mothership
 mothership = new THREE.Group();
 maingroup.add(mothership);
+mothership.position.set(-4,0,0);
 
 // LCD world
 world = new THREE.Group();
 maingroup.add(world);
 
-mothership.position.set(-4,0,0);
-
 
 // planes
 var asteroid_layers = [];
+var bg_layers = [];
 
 // lights                
 var light = new THREE.AmbientLight( 0xffffff , 0.5);
@@ -141,12 +141,12 @@ maingroup.add( clip_layer );
 
 
 // floor texture
-var geometry =  new THREE.PlaneBufferGeometry( 80, 20, 1 );
+var geometry =  new THREE.PlaneBufferGeometry( 80, 40, 1 );
 var material = new THREE.MeshLambertMaterial( {color: 0x333333, clippingPlanes: [clip_layer], transparent: true } );
 var ground = new THREE.Mesh( geometry, material );
 ground.receiveShadow = true;
 ground.rotation.set (-Math.PI/2,0,0);
-ground.position.set (0,-5.1,-5);
+ground.position.set (0,-5.1,-15);
 scene.add( ground );
 
 
@@ -271,13 +271,17 @@ line3.position.set (0,0,-8);
 maingroup.add(line3);
 
 
-// make multiplane layers
+// make asteroid layers
 addLayer("assets/asteroid.png", -6, 0.1, 1, true);
 addLayer("assets/asteroid.png", -2, 0.1, 1, true);
 addLayer("assets/asteroid.png", 2, 0.1, 1, true);
+// make multiplane layers
+addBGLayer("assets/bg3.png", -30, 0.5, 1, true);
+addBGLayer("assets/bg2.png", -25, 0.5, 1, true);
+addBGLayer("assets/bg1.png", -20, 0.5, 1, true);
 
 
-// add multiplane layers			
+// add asteroid layer			
 function addLayer(layer_name, position, scale, opacity, animation) {
 	var geometry = new THREE.PlaneGeometry (20, 20);
 	var texture = new THREE.TextureLoader().load( layer_name, function() {});
@@ -293,7 +297,6 @@ function addLayer(layer_name, position, scale, opacity, animation) {
 		// ,side: THREE.DoubleSide
 	})
 	var layer = new THREE.Mesh( geometry, material );
-	layer.material.map.wrapS = THREE.RepeatWrapping;
 	layer.position.z = position;
 	layer.position.y = -2;
 	layer.position.x = (Math.random()*10)+10;
@@ -317,6 +320,33 @@ layer.add( sphere );
 sphere.visibile = false;
 sphere.material.colorWrite = false;
 sphere.material.depthWrite = false;
+}
+
+
+// add background layer			
+function addBGLayer(layer_name, position, scale, opacity, animation) {
+	var geometry = new THREE.PlaneGeometry (20, 20);
+	var texture = new THREE.TextureLoader().load( layer_name, function() {});
+// dont anti alias texture
+	texture.magFilter = THREE.NearestFilter;
+	texture.minFilter = THREE.LinearMipMapLinearFilter;
+
+	var material = new THREE.MeshBasicMaterial({
+		map: texture,
+		transparent: true,
+		opacity: opacity,
+		clippingPlanes: [clip_layer]
+		// ,side: THREE.DoubleSide
+	})
+	var bglayer = new THREE.Mesh( geometry, material );
+	bglayer.material.map.wrapS = THREE.RepeatWrapping;
+	bglayer.position.z = position;
+	bglayer.position.y = -1;
+	bglayer.scale.set(scale, scale, scale);
+	bglayer.renderOrder = 2;
+	bg_layers.push(bglayer);
+	world.add( bglayer );
+	//
 }
 
 
@@ -423,18 +453,24 @@ if (xval<1) {return}
 for ( var i = 0; i < asteroid_layers.length; i ++ ) { 
 	asteroid_layers[i].position.x -= xval/100;
   if (asteroid_layers[i].position.x < -11) {
-    // var rnd = Math.random()/10;
     asteroid_layers[i].position.x = (Math.random()*10)+10;
-    // asteroid_layers[i].scale.set(rnd, rnd, rnd);
-    // console.log(asteroid_layers[i])
-	
   }
 }
-	// make this more random
-	asteroid_layers[0].rotation.z += Math.random()/20;
+	// move asteroids !! make this more random *********
+	asteroid_layers[0].rotation.z += Math.random()/10;
 	asteroid_layers[1].rotation.z -= Math.random()/20;
-	asteroid_layers[2].rotation.z += Math.random()/35;
+	asteroid_layers[2].rotation.z += Math.random()/30;
 
+	// move background layers
+	bg_layers[0].position.x -= Math.random()/16;
+	bg_layers[1].position.x -= Math.random()/12;
+	bg_layers[2].position.x -= Math.random()/8;
+
+for ( var i = 0; i < bg_layers.length; i ++ ) { 
+  if (bg_layers[i].position.x < -20) {
+    bg_layers[i].position.x = 20;
+  }
+}
 // // show speed on screen
 document.getElementById('speedo').innerHTML = Math.round(xval*10);
 
