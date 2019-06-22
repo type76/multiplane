@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name=viewport content='width=500'>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
 <title>multiplane z</title>
 
 <style>
@@ -13,11 +15,11 @@
 }
 
 
-body { margin: 0; overflow: hidden; background: #222;
+body { margin: 0; overflow: hidden; background: #333;
 	font-family: monospace;}
 
-	canvas { width: 100%; height: 100%; position:absolute;}
-	#points {position: absolute; bottom: 0px; left: 10px; z-index: 2; text-align: left;
+	#cnv { width: 100%; height: 100%; position:absolute;}
+	#points {position: absolute; bottom: 10px; left: 10px; z-index: 2; text-align: left;
 		color: #fff; font-family: 'DSEG7ClassicMini-Bold';
 		-webkit-touch-callout: none;
 		-webkit-user-select: none;
@@ -25,19 +27,84 @@ body { margin: 0; overflow: hidden; background: #222;
 		-moz-user-select: none;
 		-ms-user-select: none;
 	}
+	button {
+		cursor: pointer;
+		outline: none;
+		border: none;
+	}
+	button:active {
+		background: rgba(0,0,0,0.4) !important;
+	}
+
+	#upbutton, #downbutton {
+		position: absolute;
+		z-index: 3;
+		display: block;
+		width: 200px;
+		height: 200px;
+		border-radius: 100%;
+		margin: 0;
+		padding: 0;
+		transform: scale(0.3);
+		background: rgba(0,0,0,0.1);
+	}
+	#downbutton {
+		bottom: 0;
+		right: 0;
+	}
+	#upbutton {
+		bottom: 0;
+		left: 0;
+	}
+	svg {
+		margin: 0;
+		padding: 0;
+		display: block;
+	}
+	#startbutton {
+		position: absolute;
+		z-index: 3;
+		top: 20px;
+		right: 20px;
+		display: block;
+		width: 40px;
+		height: 40px;
+		border-radius: 100%;
+		background: rgba(255,255,255,0.1);	
+		color: #fff;	
+	}
+
 
 </style>
 
 </head>
 <body>
-	<!-- <p id="points">0</p> -->
-	<canvas width="512" height="512" style="width: 512px; height: 512px;"></canvas>
+
+<div id="userbuttons">
+<button id="startbutton">start</button>
+
+<button id="upbutton" onclick="goback();">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" width="200" height="200"><path id="a" stroke="rgba(255,255,255,0.1)" stroke-width="25.95" stroke-linejoin="miter" stroke-linecap="square" stroke-miterlimit="3" fill="none" d="M55.8 122.1L100 77.9l44.2 44.2"/></path></svg>
+</button>
+
+<button id="downbutton" onclick="goforward();">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" width="200" height="200"><path id="b" stroke="rgba(255,255,255,0.1)" stroke-width="25.95" stroke-linejoin="miter" stroke-linecap="square" stroke-miterlimit="3" fill="none" d="M144.2 77.9L100 122.1 55.8 77.9"/></path></svg>
+</button>
+</div><!-- userbuttons -->
+
+
+	<canvas id="scorecnv" style="display: none; position: absolute;" width="128" height="128"></canvas>
 
 	<script src="js/three.min.js"></script>
 	<script src="js/orbitcontrols.min.js"></script>
+	<script src='js/tween.js'></script>
 
 
 	<script>
+	var speedo = 0;
+// scores canvas
+var scorecnv = document.getElementById('scorecnv'),
+    ctx = scorecnv.getContext('2d');
 
 // lane 3 = -6
 // lane 2 = -2
@@ -62,11 +129,10 @@ var camera = new THREE.PerspectiveCamera(
 35, // 35mm film camera
 window.innerWidth / window.innerHeight,
 1, // min render
-100 // max render
+200 // max render
 );
 
 // camera settings
-
 camera.position.set(0,0,30);
 
 // renderer
@@ -74,6 +140,7 @@ var renderer = new THREE.WebGLRenderer({ alpha: true });
 renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.domElement.id = 'cnv';
 document.body.appendChild( renderer.domElement );
 
 // controls
@@ -97,26 +164,32 @@ maingroup.add( hero );
 cursor = new THREE.Group();
 maingroup.add(cursor);
 
-// the mothership
-mothership = new THREE.Group();
-maingroup.add(mothership);
-mothership.position.set(-4,0,0);
 
 // LCD world
 world = new THREE.Group();
-maingroup.add(world);
+world.rotation.x = Math.PI/20;
+scene.add(world);
+// the mothership
+mothership = new THREE.Group();
+world.add(mothership);
+mothership.position.set(-4,0,0);
+// ground group
+groundparent = new THREE.Group();
+groundparent.scale.set( 1, 0.2, 1 );
+world.add( groundparent );
+// sub group to position
+groundgroup = new THREE.Group();
+groundgroup.position.set( 0, -48, 6 );
+groundgroup.rotation.set( 0, 0, Math.PI/1.2 );
+groundparent.add( groundgroup );
 
-// points text 3D object
-points = new THREE.Group();
-points.position.set(6.4,-4.2,5)
-maingroup.add(points);
 
 // planes
 var asteroid_layers = [];
 var bg_layers = [];
 
 // lights                
-var light = new THREE.AmbientLight( 0xffffff , 0.5);
+var light = new THREE.AmbientLight( 0xffffff , 0.2);
 maingroup.add( light );
 
 var light = new THREE.PointLight( 0xffffff, 1, 40 );
@@ -124,17 +197,33 @@ light.position.set( 10, 10, 10 );
 scene.add( light );
 
 //spot light
-var splight = new THREE.SpotLight( 0xffffff, 0.1 );
+var splight = new THREE.SpotLight( 0xffffff, 0.2 );
 splight.position.set( 0, 30, 0 );
 splight.castShadow = true;
 splight.shadow = new THREE.LightShadow( new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 1, 100 ) );
-splight.shadow.mapSize.width = 512;
-splight.shadow.mapSize.height = 512;
-light.shadow.camera.near = 0.5;
-light.shadow.camera.far = 50;
-
+splight.shadow.mapSize.width = 256;
+splight.shadow.mapSize.height = 256;
+splight.shadow.camera.near = 0.5;
+splight.shadow.camera.far = 50;
 splight.name = 'splight';
 scene.add( splight );
+
+// sky box
+var loader = new THREE.TextureLoader();
+loader.load( 'assets/bggrad.png', function ( texture ) {
+  // var skygeometry = new THREE.SphereGeometry(90, 32, 32)
+  var skygeometry = new THREE.SphereBufferGeometry(90, 32, 32, 0, 2*Math.PI, 0, 0.5 * Math.PI);
+
+  var skymaterial = new THREE.MeshBasicMaterial( { map: texture
+  	, side : THREE.BackSide
+  ,transparent: true, opacity: 0.5
+   } );
+  var skyn = new THREE.Mesh( skygeometry, skymaterial );
+  skyn.name = "skynight";
+  skyn.rotation.x = -Math.PI/2;
+  skyn.position.z = 4.5;
+  scene.add(skyn);
+} );
 
 
 // Clipping plane (mask)
@@ -159,28 +248,19 @@ var clip_layer = new THREE.Mesh( clip_plane, clip_material );
 clip_layer.renderOrder = 1;
 clip_layer.position.z = 5.2;
 maingroup.add( clip_layer );
+// clip_layer.visible = false;
 
 
-
-// floor texture
-var geometry =  new THREE.PlaneBufferGeometry( 40, 40, 100, 100 );
-var material = new THREE.MeshLambertMaterial( {color: 0x333333, clippingPlanes: [clip_layer], transparent: true, opacity:1 } );
-var ground = new THREE.Mesh( geometry, material );
-ground.receiveShadow = true;
-ground.rotation.set (-Math.PI/2,0,0);
-ground.position.set (0,-5.1,-15);
-scene.add( ground );
-
-//// LCD outline
+// LCD outline
 var size = lcdheight*2;
 var divisions = 1;
-var gridHelper = new THREE.GridHelper(size, divisions, 1, 0x333333 );
+var gridHelper = new THREE.GridHelper(size, divisions, 1, 0x111111 );
 gridHelper.rotation.x = Math.PI/2;
 gridHelper.position.z = 5.2;
 gridHelper.scale.x = 1.4;
 maingroup.add(gridHelper)
 
-// ship
+// 2D ship
 var shiptex = new THREE.TextureLoader().load( 'assets/rocket.png' );
 shiptex.magFilter = THREE.NearestFilter;
 shiptex.minFilter = THREE.LinearMipMapLinearFilter;
@@ -196,26 +276,30 @@ var ship = new THREE.Mesh( shpgeometry, shpmaterial );
 ship.position.z = 2.01;
 ship.position.y = -2;
 ship.renderOrder = 2;
-
 mothership.add( ship );
 
-// shadow
-var shdwgeometry = new THREE.PlaneBufferGeometry( 2, 2, 1 );
-var shdwmaterial = new THREE.MeshBasicMaterial( {
-	color: 0x000000, 
-	map:shiptex,
+
+
+// ship shadow object
+var loader = new THREE.BufferGeometryLoader();
+loader.load(
+    'assets/ship.json',
+    function ( geometry ) {
+        var material = new THREE.MeshLambertMaterial( { 
+			color:0xff0000, transparent:true,
 	clippingPlanes: [clip_layer]
-	,transparent: true,
-	opacity:0.3
-} );
-var shdw = new THREE.Mesh( shdwgeometry, shdwmaterial );
-shdw.position.z = 0.2;
-// shdw.scale.y = 2;
-shdw.position.y = -2.9;
-shdw.renderOrder = 2;
-shdw.rotation.x = -Math.PI/2;
-// shdw.rotation.z = Math.PI;
-ship.add( shdw );
+        } );
+        var object = new THREE.Mesh( geometry, material );
+        object.scale.set( 2, 2, 2 );
+        object.castShadow = true;
+        ship.add( object );
+		object.visibile = false;
+		object.material.colorWrite = false;
+		object.material.depthWrite = false;
+    },
+    function ( xhr ) {},
+    function ( xhr ) {console.log( 'An error happened' );}
+    );
 
 
 // life (hearts)
@@ -230,11 +314,32 @@ var lifematerial = new THREE.MeshBasicMaterial( {
 	transparent: true
 } );
 var heart = new THREE.Mesh( geometry, lifematerial );
-heart.position.x = -6.5;
-heart.position.z = 5.2;
-heart.position.y = -4.5;
+heart.position.set (-6.4, -4.5, 5.2);
 heart.renderOrder = 2;
 maingroup.add( heart );
+
+var heart2 = heart.clone();
+heart2.position.set (-5.9, -4.5, 5.2);
+maingroup.add(heart2);
+
+var heart3 = heart.clone();
+heart3.position.set (-5.4, -4.5, 5.2);
+maingroup.add(heart3);
+
+
+// score
+var scgeometry = new THREE.PlaneBufferGeometry( 2, 2, 1 );
+var scoretexture = new THREE.Texture(scorecnv);
+scoretexture.magFilter = THREE.NearestFilter;
+var scorematerial = new THREE.MeshBasicMaterial({ 
+	map: scoretexture,  transparent: true });
+var score = new THREE.Mesh( scgeometry, scorematerial );
+score.position.x = 6.5;
+score.position.z = 5.2;
+score.position.y = -4.5;
+
+score.renderOrder = 2;
+maingroup.add( score );
 
 
 // handheld
@@ -255,24 +360,51 @@ maingroup.add( heart );
 //     function ( xhr ) {console.log( 'An error happened' );}
 //     );
 
-// lines
-var geometry = new THREE.Geometry();
-geometry.vertices.push(new THREE.Vector3( -30, -5, 2) );
-geometry.vertices.push(new THREE.Vector3( 30, -5, 2) );
-var material = new THREE.LineBasicMaterial( { 
-	color: 0x222222
-	, clippingPlanes: [clip_layer]
-	,transparent: true } );
-var line1 = new THREE.Line( geometry, material );
-maingroup.add( line1 );
+// ground [moon surface]
+var bumptexture = new THREE.TextureLoader().load( 'assets/groundbump.png' );
+var groundtexture = new THREE.TextureLoader().load( 'assets/ground_texture.png' );
+groundtexture.magFilter = THREE.NearestFilter;
+groundtexture.minFilter = THREE.LinearMipMapLinearFilter;
+var loader = new THREE.BufferGeometryLoader();
+loader.load(
+    'assets/grnd.json',
+    function ( geometry ) {
+        var material = new THREE.MeshStandardMaterial( { 
+			map:groundtexture,
+			displacementMap:bumptexture,
+		    displacementScale: -0.4,
+			clippingPlanes: [clip_layer],
+			transparent: true		    
+        } );
+        var object = new THREE.Mesh( geometry, material );
+        object.scale.set( 20, 20, 20 );
+		object.rotation.set(Math.PI,Math.PI/2,Math.PI/2);
+		object.receiveShadow = true;
+        groundgroup.add( object );
+    },
+    function ( xhr ) {},
+    function ( xhr ) {console.log( 'An error happened' );}
+    );
 
-var line2 = new THREE.Line( geometry, material );
-line2.position.set (0,0,-4);
-maingroup.add(line2);
 
-var line3 = new THREE.Line( geometry, material );
-line3.position.set (0,0,-8);
-maingroup.add(line3);
+// // lines
+// var geometry = new THREE.Geometry();
+// geometry.vertices.push(new THREE.Vector3( -30, -5, 2) );
+// geometry.vertices.push(new THREE.Vector3( 30, -5, 2) );
+// var material = new THREE.LineBasicMaterial( { 
+// 	color: 0x222222
+// 	, clippingPlanes: [clip_layer]
+// 	,transparent: true } );
+// var line1 = new THREE.Line( geometry, material );
+// maingroup.add( line1 );
+
+// var line2 = new THREE.Line( geometry, material );
+// line2.position.set (0,0,-4);
+// maingroup.add(line2);
+
+// var line3 = new THREE.Line( geometry, material );
+// line3.position.set (0,0,-8);
+// maingroup.add(line3);
 
 
 // make asteroid layers
@@ -280,9 +412,9 @@ addLayer("assets/asteroid.png", -6, 0.1, 1, true);
 addLayer("assets/asteroid.png", -2, 0.1, 1, true);
 addLayer("assets/asteroid.png", 2, 0.1, 1, true);
 // make multiplane layers
-addBGLayer("assets/bg3.png", -30, 0.5, 1, true);
-addBGLayer("assets/bg2.png", -25, 0.5, 1, true);
-addBGLayer("assets/bg1.png", -20, 0.5, 1, true);
+addBGLayer("assets/c1.png", -40, 1.2, 1, true);
+addBGLayer("assets/c2.png", -30, 1, 1, true);
+// addBGLayer("assets/bg1.png", -20, 0.5, 1, true);
 
 
 // add asteroid layer			
@@ -350,7 +482,20 @@ bglayer.scale.set(scale, scale, scale);
 bglayer.renderOrder = 2;
 bg_layers.push(bglayer);
 world.add( bglayer );
-//
+// cloud shadow
+var shadowtex = new THREE.TextureLoader().load( 'assets/shadow2.png' );
+var bgshdwmat = new THREE.MeshBasicMaterial({
+	clippingPlanes: [clip_layer],
+	map: shadowtex,
+	transparent: true
+})
+var bgshdw = new THREE.Mesh( geometry, bgshdwmat );
+bgshdw.scale.set (1, 0.5, 0.5);
+bgshdw.position.set (0, -4, 0);
+bgshdw.rotation.set(-Math.PI/2, 0, 0);
+bgshdw.renderOrder = 2;
+bglayer.add(bgshdw);
+
 }
 
 
@@ -391,16 +536,24 @@ if (evt.keyCode == 39) {// right
 
 if (evt.keyCode == 38) {// up
 	evt.preventDefault();
-	if (hero.position.z>-8) {hero.position.z=hero.position.z-4;}
+	goback();
 }
 
 if (evt.keyCode == 40) {// down
 	evt.preventDefault();
-	if (hero.position.z<0) {hero.position.z=hero.position.z+4;}
+	goforward();
 }
 
 };
 
+function goback() {
+if (hero.position.z>-8) {hero.position.z=hero.position.z-4;}
+}
+
+
+function goforward() {
+	if (hero.position.z<0) {hero.position.z=hero.position.z+4;}
+}
 
 // pedal down
 function pressingDown(e) {
@@ -441,13 +594,20 @@ function timer() {
 // move background
 function bgmove() {
 	if (xval<1) {return}
-// range asteroid_layers
+// asteroid_layers movement range
 for ( var i = 0; i < asteroid_layers.length; i ++ ) { 
 	asteroid_layers[i].position.x -= xval/100;
-	if (asteroid_layers[i].position.x < -11) {
-		asteroid_layers[i].position.x = (Math.random()*10)+10;
+	// move to random start position again
+	if (asteroid_layers[i].position.x < -20) {
+		asteroid_layers[i].position.x = (Math.random()*10)+15;
 	}
+// fade in/out
+asteroid_layers[i].material.opacity = fadeit(asteroid_layers[i].position.x, 2, -12, 12)
 }
+
+// move ground texture
+groundgroup.rotation.z += xval/3000;
+
 // move asteroids !! make this more random *********
 asteroid_layers[0].rotation.z += xval/650;
 asteroid_layers[1].rotation.z -= xval/500;
@@ -456,16 +616,17 @@ asteroid_layers[2].rotation.z += xval/600;
 // move background layers
 bg_layers[0].position.x -= xval/320;
 bg_layers[1].position.x -= xval/220;
-bg_layers[2].position.x -= xval/120;
 // range bg_layers
-for ( var i = 0; i < bg_layers.length; i ++ ) { 
-	if (bg_layers[i].position.x < -21) {
-		bg_layers[i].position.x = (Math.random()*10)+24;
+	for ( var i = 0; i < bg_layers.length; i ++ ) { 
+		if (bg_layers[i].position.x < -24) {
+			bg_layers[i].position.x = (Math.random()*10)+24;
+		}
+		bg_layers[i].material.opacity = fadeit(bg_layers[i].position.x, 2, -20, 20);
+		bg_layers[i].children[0].material.opacity = fadeit(bg_layers[i].position.x, 2, -20, 20);
+		// console.log(bg_layers[i].children[0])
 	}
-}
 
-
-}
+}// end bgmove
 
 // move mothership 
 function heromove() {
@@ -476,62 +637,18 @@ cursor.position.x = mothership.position.x;
 cursor.position.z = mothership.position.z;
 }// end hero move
 
-//
 
-//create points in 3D
-function createclone(r,posx,posy,posz){
-// DOM label
-var label = this._createTextLabel(posx,posz);
-label.setHTML(r);
-label.setParent(points);
-this.textlabels.push(label);
-document.body.appendChild(label.element);
-};
+// update score
+function updateCanvas() {
+	scoretexture.needsUpdate = true;
+    ctx.font = '20pt DSEG7ClassicMini-Bold';
+    ctx.clearRect(0, 0, 100, 100);
+    ctx.fillStyle = 'white';
+    ctx.textAlign = "right";
+    ctx.textBaseline = "right";
+    // ctx.fillText(Math.round(xval*5), 100 / 1.5, 100/1.4);
+}
 
-// label
-function _createTextLabel(posx,posz) {
-	var div = document.createElement('div');
-	div.className = 'txtlbl';
-	div.id = 'points';
-	div.style.top = -1000;
-	div.style.left = -1000;
-	var _this = this;
-	// setTimeout(function () {
-		div.className = 'txtlbl';
-	// }, 1);
-
-	return {
-		element: div,
-		parent: false,
-		position: new THREE.Vector3(0,0,0),
-		setHTML: function(html) {
-			this.element.innerHTML = html;
-		},
-		setParent: function(threejsobj) {
-			this.parent = threejsobj;
-		},
-		updatePosition: function() {
-			if(parent) {
-				this.position.copy(this.parent.position);
-			}
-
-			var coords2d = this.get2DCoords(this.position, _this.camera);
-			this.element.style.left = coords2d.x + 'px';
-			this.element.style.top = coords2d.y + 'px';
-		},
-		get2DCoords: function(position, camera) {
-			var vector = position.project(camera);
-			vector.x = (vector.x + 1)/2 * window.innerWidth;
-			vector.y = -(vector.y - 1)/2 * window.innerHeight;
-			return vector;
-		},
-		location: {
-			x:posx,
-			y:posy,
-			z:posz
-		}
-	};
-};
 
 // GAME LOOP
 function animate() {
@@ -540,19 +657,56 @@ function animate() {
 	renderer.render( scene, camera );
 	bgmove();
 	heromove();
-// show speed on screen
-// document.getElementById('points').innerHTML = Math.round(xval*5);
-// DOM points position
-if (textlabels.length>0) {
-	for(var i=0; i<this.textlabels.length; i++) {
-		this.textlabels[i].updatePosition();
-	}
-}//end if
+    updateCanvas();
+
+// speedometer
+	speedo += xval/1000;
+	var xxx = speedo;
+	if (speedo > 0) {
+		ctx.fillText(Math.round(speedo), 100 / 1.5, 100/1.4);  
+	} 
+  		// console.log(Math.round(speedo))
+
 }
 
-// start <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< START HERE
-createclone('0',points.position.x,points.position.y,points.position.z);
+function fadeit(x, tween_distance, screen_left, screen_right){
+    var opacity = 1;
+    if ( x < screen_left ){
+        difference = screen_left - x;
+        opacity = ( tween_distance - difference ) / tween_distance;
+    }
+    if ( x > screen_right ){
+        difference = x - screen_right;
+        opacity = ( tween_distance - difference ) / tween_distance;
+    }
+    return opacity;
+}
+// <<<<<<<<<<<<<<< START HERE >>>>>>>>>>>>>>>
 animate();
+
+
+// mobile UI
+
+var startbutton = document.getElementById("startbutton");
+startbutton.addEventListener("click",startgame, false );
+
+function startgame() {
+	startbutton.classList.toggle('on');
+	if (startbutton.classList != "on") {
+startbutton.textContent = 'start';
+notPressingDown();
+	} else {
+startbutton.textContent = 'stop';
+pressingDown();
+	}
+}
+
+
+// audio
+// click press sound
+function clicksnd() {
+new Audio("tap.wav").play();
+}
 
 </script>
 </body>
